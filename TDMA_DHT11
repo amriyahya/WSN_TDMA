@@ -1,0 +1,91 @@
+#include <ESP8266WiFi.h>
+#include <PubSubClient.h>
+#include "dht.h"
+#define dht_apin D1 // Analog Pin sensor is connected to
+ 
+dht DHT;
+const char* ssid = "Kontrakan Atom";
+const char* password = "mabestayo007";
+const char* mqttServer = "postman.cloudmqtt.com";
+const int mqttPort = 17417;
+const char* mqttUser = "bccbhvss";
+const char* mqttPassword = "BzlBNIazERAP";
+ 
+WiFiClient espClient;
+PubSubClient client(espClient);
+
+int pirPin = 13;
+ 
+int state = LOW;
+int waktu;
+ 
+void setup() {
+
+
+  Serial.begin(115200);
+  Serial.println("DHT11 Temperature :");
+  pinMode(pirPin, INPUT);
+  
+  WiFi.begin(ssid, password);
+ 
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.println("Connecting to WiFi..");
+  }
+  Serial.println("Connected to the WiFi network");
+ 
+  client.setServer(mqttServer, mqttPort);
+  client.setCallback(callback);
+ 
+  while (!client.connected()) {
+    Serial.println("Connecting to MQTT...");
+ 
+    if (client.connect("ESP826", mqttUser, mqttPassword )) {
+ 
+      Serial.println("connected");  
+ 
+    } else {
+ 
+      Serial.print("failed with state ");
+      Serial.print(client.state());
+      delay(2000);
+ 
+    }
+  }
+ 
+ // client.publish("esp/test", "Hello from ESP8266");
+  // client.subscribe("esp/test");
+ 
+}
+ 
+void callback(char* topic, byte* payload, unsigned int length) {
+ 
+  Serial.print("Message arrived in topic: ");
+  Serial.println(topic);
+ 
+  Serial.print("Message:");
+  for (int i = 0; i < length; i++) {
+    Serial.print((char)payload[i]);
+  }
+ 
+  Serial.println();
+  Serial.println("-----------------------");
+ 
+}
+ 
+void loop() {
+
+  
+  DHT.read11(dht_apin);
+    
+    Serial.print("temperature = ");
+    Serial.println(DHT.temperature);
+    char data[50] = "Temp = ";
+    char sensor[10] = {};
+    itoa((int)DHT.temperature, sensor, 10);
+    strcat(data, sensor);
+    client.publish("esp/test",data);
+ delay(1000);
+ 
+ client.loop();
+}
